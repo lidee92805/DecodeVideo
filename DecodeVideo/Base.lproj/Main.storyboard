@@ -737,11 +737,11 @@
         <scene sceneID="SX0-C2-xuT">
             <objects>
                 <viewController id="a9w-KQ-ifh" customClass="PlayViewController" sceneMemberID="viewController">
-                    <view key="view" id="sxP-QA-ZY8">
+                    <view key="view" id="sxP-QA-ZY8" customClass="PlayESView">
                         <rect key="frame" x="0.0" y="0.0" width="450" height="300"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
-                            <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="mDI-d1-Zke">
+                            <imageView hidden="YES" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="mDI-d1-Zke">
                                 <rect key="frame" x="0.0" y="0.0" width="450" height="300"/>
                                 <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="lGl-gb-RPg"/>
                             </imageView>

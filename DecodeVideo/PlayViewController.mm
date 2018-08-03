@@ -13,7 +13,9 @@ extern "C" {
 #include <libavfilter/buffersink.h>
 #include <libavutil/opt.h>
 };
+#import <CoreImage/CoreImage.h>
 #import "PlayViewController.h"
+#import "PlayESView.h"
 @interface PlayViewController ()
 @property (weak) IBOutlet NSSlider *slider;
 @property (weak) IBOutlet NSTextField *totalTimeLabel;
@@ -37,12 +39,17 @@ extern "C" {
     NSTimer * timer;
 
     NSInteger videoDuration;
+
+    CVPixelBufferPoolRef pixelBufferPool;
+
+    CIContext * context;
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do view setup here.
     videoIndex = NSNotFound;
+    context = [CIContext contextWithOptions:nil];
     [self initDecoder];  //初始化解码器
     [self initFilters];  //初始化过滤器
 
@@ -191,44 +198,86 @@ extern "C" {
                     av_frame_free(&frame);
                     return;
                 }
-                //把解码出的frame传入filter中进行格式转换
-                ret = av_buffersrc_add_frame_flags(self->buffer_ctx, frame, 0);
-                if (ret < 0) {
-                    NSLog(@"add frame error");
-                    return;
-                }
-                //将转换好的rgbFrame取出来
-                AVFrame * rgbFrame = av_frame_alloc();
-                ret = av_buffersink_get_frame(self->bufferSink_ctx, rgbFrame);
-                if (ret < 0) {
-                    NSLog(@"get frame error");
-                    return;
-                }
-                /*
-                 frame中data存放解码出的yuv数据，data[0]中是y数据，data[1]中是u数据，data[2]中是v数据，linesize对应的数据长度
-                 rgb数据全部都存放在frame的data[0]中
-                 */
+                 //frame中data存放解码出的yuv数据，data[0]中是y数据，data[1]中是u数据，data[2]中是v数据，linesize对应的数据长度
                 float time = packet->pts * av_q2d(self->pFormatCtx->streams[self->videoIndex]->time_base);  //计算当前帧时间
                 av_packet_free(&packet);
-                av_frame_free(&frame);
-                //将frame中的RGB数据转成NSImage显示
-                CFDataRef data = CFDataCreateWithBytesNoCopy(kCFAllocatorDefault, rgbFrame->data[0], rgbFrame->linesize[0] * self->pCodecCtx->height, kCFAllocatorNull);
-                if (CFDataGetLength(data) != 0) {
-                    CGDataProviderRef provider = CGDataProviderCreateWithCFData(data);
-                    CGBitmapInfo bitmapInfo = kCGBitmapByteOrderDefault;
-                    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-                    CGImageRef cgImage = CGImageCreate(self->pCodecCtx->width, self->pCodecCtx->height, 8, 24, rgbFrame->linesize[0], colorSpace, bitmapInfo, provider, NULL, YES, kCGRenderingIntentDefault);
-                    NSImage * image = [[NSImage alloc] initWithCGImage:cgImage size:NSSizeFromCGSize(CGSizeMake(self->pCodecCtx->width, self->pCodecCtx->height))];
-                    CGImageRelease(cgImage);
-                    CGDataProviderRelease(provider);
-                    CGColorSpaceRelease(colorSpace);
-                    av_frame_free(&rgbFrame);
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        self.label.stringValue = [NSString stringWithFormat:@"%.2d:%.2d", (int)time/60, (int)time%60];
-                        self.imageView.image = image;
-                        self.slider.floatValue = time / (float)self->videoDuration;
-                    });
+
+                CVReturn theError;
+                if (!self->pixelBufferPool){  //创建pixelBuffer缓存池，从缓存池中创建pixelBuffer以便复用
+                    NSMutableDictionary* attributes = [NSMutableDictionary dictionary];
+                    [attributes setObject:[NSNumber numberWithInt:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange] forKey:(NSString*)kCVPixelBufferPixelFormatTypeKey];
+                    [attributes setObject:[NSNumber numberWithInt:frame->width] forKey: (NSString*)kCVPixelBufferWidthKey];
+                    [attributes setObject:[NSNumber numberWithInt:frame->height] forKey: (NSString*)kCVPixelBufferHeightKey];
+                    [attributes setObject:@(frame->linesize[0]) forKey:(NSString*)kCVPixelBufferBytesPerRowAlignmentKey];
+                    [attributes setObject:[NSDictionary dictionary] forKey:(NSString*)kCVPixelBufferIOSurfacePropertiesKey];
+                    theError = CVPixelBufferPoolCreate(kCFAllocatorDefault, NULL, (__bridge CFDictionaryRef) attributes, &self->pixelBufferPool);
+                    if (theError != kCVReturnSuccess){
+                        NSLog(@"CVPixelBufferPoolCreate Failed");
+                    }
                 }
+
+                CVPixelBufferRef pixelBuffer = nil;
+                theError = CVPixelBufferPoolCreatePixelBuffer(NULL, self->pixelBufferPool, &pixelBuffer);
+                if(theError != kCVReturnSuccess){
+                    NSLog(@"CVPixelBufferPoolCreatePixelBuffer Failed");
+                }
+
+                theError = CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+                if (theError != kCVReturnSuccess) {
+                    NSLog(@"lock error");
+                }
+                /*
+                 PixelBuffer中Y数据存放在Plane0中，UV数据存放在Plane1中，数据格式如下
+                 frame->data[0]  .........   YYYYYYYYY
+                 frame->data[1]  .........   UUUUUUUU
+                 frame->data[2]  .........   VVVVVVVVV
+                 PixelBuffer->Plane0 .......  YYYYYYYY
+                 PixelBuffer->Plane1 .......  UVUVUVUVUV
+                 所以需要把Y数据拷贝到Plane0上，把U和V数据交叉拷到Plane1上
+                 */
+                size_t bytePerRowY = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0);
+                size_t bytesPerRowUV = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1);
+                //获取Plane0的起始地址
+                void* base = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0);
+                memcpy(base, frame->data[0], bytePerRowY * frame->height);
+                //获取Plane1的起始地址
+                base = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1);
+                uint32_t size = frame->linesize[1] * frame->height / 2;
+                //把UV数据交叉存储到dstData然后拷贝到Plane1上
+                uint8_t* dstData = new uint8_t[2 * size];
+                uint8_t * firstData = new uint8_t[size];
+                memcpy(firstData, frame->data[1], size);
+                uint8_t * secondData  = new uint8_t[size];
+                memcpy(secondData, frame->data[2], size);
+                for (int i = 0; i < 2 * size; i++){
+                    if (i % 2 == 0){
+                        dstData[i] = firstData[i/2];
+                    }else {
+                        dstData[i] = secondData[i/2];
+                    }
+                }
+                memcpy(base, dstData, bytesPerRowUV * frame->height/2);
+                CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+                av_frame_free(&frame);
+                free(dstData);
+                free(firstData);
+                free(secondData);
+
+                
+//                CIImage *coreImage = [CIImage imageWithCVPixelBuffer:pixelBuffer];
+//                CGImageRef videoImage = [self->context createCGImage:coreImage
+//                                                                   fromRect:CGRectMake(0, 0, self->pCodecCtx->width, self->pCodecCtx->height)];
+//                NSImage * image = [[NSImage alloc] initWithCGImage:videoImage size:NSSizeFromCGSize(CGSizeMake(self->pCodecCtx->width, self->pCodecCtx->height))];
+//                CVPixelBufferRelease(pixelBuffer);
+//                CGImageRelease(videoImage);
+
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self.label.stringValue = [NSString stringWithFormat:@"%.2d:%.2d", (int)time/60, (int)time%60];
+//                    self.imageView.image = image;
+                    PlayESView * esView = (PlayESView *)self.view;
+                    [esView renderWithPixelBuffer:pixelBuffer];
+                    self.slider.floatValue = time / (float)self->videoDuration;
+                });
             }
         } else {
             avcodec_free_context(&self->pCodecCtx);

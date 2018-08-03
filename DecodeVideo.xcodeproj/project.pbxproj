@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B43198D42113F66900D8DBC4 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B43198D32113F66900D8DBC4 /* MetalKit.framework */; };
+		B43198D62113F67B00D8DBC4 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B43198D52113F67B00D8DBC4 /* Metal.framework */; };
+		B43198D92113F69800D8DBC4 /* PlayESView.m in Sources */ = {isa = PBXBuildFile; fileRef = B43198D82113F69800D8DBC4 /* PlayESView.m */; };
+		B43198DB2113FF6A00D8DBC4 /* Metal.metal in Sources */ = {isa = PBXBuildFile; fileRef = B43198DA2113FF6A00D8DBC4 /* Metal.metal */; };
 		B4D6788021115A5200464FB8 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B4D6787F21115A5200464FB8 /* AppDelegate.m */; };
 		B4D6788321115A5200464FB8 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = B4D6788221115A5200464FB8 /* ViewController.m */; };
 		B4D6788521115A5300464FB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B4D6788421115A5300464FB8 /* Assets.xcassets */; };
@@ -34,6 +38,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B43198D32113F66900D8DBC4 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		B43198D52113F67B00D8DBC4 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		B43198D72113F69800D8DBC4 /* PlayESView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlayESView.h; sourceTree = "<group>"; };
+		B43198D82113F69800D8DBC4 /* PlayESView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PlayESView.m; sourceTree = "<group>"; };
+		B43198DA2113FF6A00D8DBC4 /* Metal.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Metal.metal; sourceTree = "<group>"; };
 		B4D6787B21115A5200464FB8 /* DecodeVideo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DecodeVideo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B4D6787E21115A5200464FB8 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		B4D6787F21115A5200464FB8 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -184,6 +193,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B43198D62113F67B00D8DBC4 /* Metal.framework in Frameworks */,
+				B43198D42113F66900D8DBC4 /* MetalKit.framework in Frameworks */,
 				B4D679312111624800464FB8 /* AudioToolbox.framework in Frameworks */,
 				B4D6792F2111623300464FB8 /* CoreImage.framework in Frameworks */,
 				B4D6792D2111622700464FB8 /* AVFoundation.framework in Frameworks */,
@@ -241,6 +252,9 @@
 				B4D6788C21115A5300464FB8 /* DecodeVideo.entitlements */,
 				B4D679352111A0FA00464FB8 /* PlayViewController.h */,
 				B4D679362111A0FA00464FB8 /* PlayViewController.mm */,
+				B43198D72113F69800D8DBC4 /* PlayESView.h */,
+				B43198D82113F69800D8DBC4 /* PlayESView.m */,
+				B43198DA2113FF6A00D8DBC4 /* Metal.metal */,
 			);
 			path = DecodeVideo;
 			sourceTree = "<group>";
@@ -447,6 +461,8 @@
 		B4D6791F211161DB00464FB8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				B43198D52113F67B00D8DBC4 /* Metal.framework */,
+				B43198D32113F66900D8DBC4 /* MetalKit.framework */,
 				B4D679302111624800464FB8 /* AudioToolbox.framework */,
 				B4D6792E2111623300464FB8 /* CoreImage.framework */,
 				B4D6792C2111622700464FB8 /* AVFoundation.framework */,
@@ -531,7 +547,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				B4D679372111A0FA00464FB8 /* PlayViewController.mm in Sources */,
+				B43198DB2113FF6A00D8DBC4 /* Metal.metal in Sources */,
 				B4D6788321115A5200464FB8 /* ViewController.m in Sources */,
+				B43198D92113F69800D8DBC4 /* PlayESView.m in Sources */,
 				B4D6788B21115A5300464FB8 /* main.m in Sources */,
 				B4D6788021115A5200464FB8 /* AppDelegate.m in Sources */,
 			);
